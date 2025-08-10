@@ -8,9 +8,7 @@ use tao::{
 use wry::{WebView, WebViewBuilder};
 
 use crate::ipc;
-enum UserEvent {
-    DragWindow,
-}
+const ZOOM_FACTOR: f64 = 0.9; // Adjust zoom factor as needed
 
 pub struct App {
     title: String,
@@ -35,6 +33,7 @@ impl App {
             .with_fullsize_content_view(true)
             .with_titlebar_transparent(true)
             .with_title_hidden(true)
+            .with_background_color(tao::window::RGBA::from((40,43,48,255)))
             .build(&event_loop)
             .expect("Failed to create window");
 
@@ -51,6 +50,7 @@ impl App {
         let web_view = WebViewBuilder::new()
             .with_url(web_view_url)
             .with_user_agent(user_agent)
+            .with_background_color(tao::window::RGBA::from((40,43,48,255)))
             .with_ipc_handler(move |message| {
                 println!("Received IPC message: {}", message.body());
                 match message.body().as_str() {
@@ -67,6 +67,9 @@ impl App {
             .with_devtools(true)
             .build(&window)
             .expect("Failed to build web view");
+
+        // realistic zoom level, magic number woooo
+        web_view.zoom(ZOOM_FACTOR).unwrap();
 
         Self {
             title: title.to_string(),
