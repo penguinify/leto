@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 tao = "0.34.0"
-wry = "0.52.1"
+wry = {version = "0.52.1", features = ["devtools"]}
