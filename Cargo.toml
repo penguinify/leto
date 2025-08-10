@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+muda = "0.17.1"
 tao = "0.34.0"
 wry = {version = "0.52.1", features = ["devtools"]}

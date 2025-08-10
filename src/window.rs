@@ -1,23 +1,23 @@
 use tao::{
-    event::MouseButton,
     event_loop::{ControlFlow, EventLoop},
     platform::macos::WindowBuilderExtMacOS,
     window::{Window, WindowBuilder},
 };
 
+use muda::accelerator::{Accelerator, Code, Modifiers};
+use muda::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use wry::{WebView, WebViewBuilder};
 
-use crate::ipc;
 const ZOOM_FACTOR: f64 = 0.9; // Adjust zoom factor as needed
 
 pub struct App {
-    title: String,
-    width: u32,
-    height: u32,
+    _title: String,
+    _width: u32,
+    _height: u32,
     event_loop: EventLoop<()>,
     window: Window,
     web_view: WebView,
-    web_view_url: String,
+    _web_view_url: String,
 }
 
 impl App {
@@ -33,14 +33,14 @@ impl App {
             .with_fullsize_content_view(true)
             .with_titlebar_transparent(true)
             .with_title_hidden(true)
-            .with_background_color(tao::window::RGBA::from((40,43,48,255)))
+            .with_background_color(tao::window::RGBA::from((40, 43, 48, 255)))
+            .with_min_inner_size(tao::dpi::LogicalSize::new(1200.0, 720.0))
             .build(&event_loop)
             .expect("Failed to create window");
 
         window
             .set_ignore_cursor_events(false)
             .expect("Failed to set ignore cursor events");
-
 
         // Taken from Lemoncord
         #[cfg(target_os = "macos")]
@@ -50,7 +50,7 @@ impl App {
         let web_view = WebViewBuilder::new()
             .with_url(web_view_url)
             .with_user_agent(user_agent)
-            .with_background_color(tao::window::RGBA::from((40,43,48,255)))
+            .with_background_color(tao::window::RGBA::from((40, 43, 48, 255)))
             .with_ipc_handler(move |message| {
                 println!("Received IPC message: {}", message.body());
                 match message.body().as_str() {
@@ -63,7 +63,7 @@ impl App {
                         println!("Received unknown IPC message: {}", message.body());
                     }
                 }
-                })
+            })
             .with_devtools(true)
             .build(&window)
             .expect("Failed to build web view");
@@ -71,14 +71,16 @@ impl App {
         // realistic zoom level, magic number woooo
         web_view.zoom(ZOOM_FACTOR).unwrap();
 
+        App::add_menubar_items();
+
         Self {
-            title: title.to_string(),
-            width,
-            height,
+            _title: title.to_string(),
+            _width: width,
+            _height: height,
             event_loop,
             window,
             web_view,
-            web_view_url: web_view_url.to_string(),
+            _web_view_url: web_view_url.to_string(),
         }
     }
 
@@ -87,6 +89,32 @@ impl App {
         self.web_view.evaluate_script(script)
     }
 
+    pub fn add_menubar_items() {
+        //TODO: add developer tools menu item and update the event loop for custom events
+
+        let menu = Menu::new();
+
+        let about_m = Submenu::new("leto", true);
+        menu.append(&about_m).unwrap();
+        about_m
+            .append_items(&[
+                &PredefinedMenuItem::hide(None),
+                &PredefinedMenuItem::hide_others(None),
+                &PredefinedMenuItem::show_all(None),
+                &PredefinedMenuItem::separator(),
+                &PredefinedMenuItem::quit(None),
+            ])
+            .unwrap();
+
+        #[cfg(target_os = "windows")]
+        unsafe {
+            about_m.init_for_hwnd(window_hwnd)
+        };
+        #[cfg(target_os = "linux")]
+        about_m.init_for_gtk_window(&gtk_window, Some(&vertical_gtk_box));
+        #[cfg(target_os = "macos")]
+        menu.init_for_nsapp();
+    }
     pub fn run(self) {
         let Self {
             event_loop,
@@ -107,11 +135,12 @@ impl App {
                 web_view.reload().unwrap();
             }
 
+            //TODO: I seriously need to update the event handler to support custom events
             tao::event::Event::UserEvent(()) => {
-                    if let Err(e) = window.drag_window() {
-                        eprintln!("Failed to drag window: {}", e);
-                    }
+                if let Err(e) = window.drag_window() {
+                    eprintln!("Failed to drag window: {}", e);
                 }
+            }
             _ => (),
         });
     }
