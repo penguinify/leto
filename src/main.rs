@@ -1,6 +1,4 @@
-use tao::{event_loop::EventLoop, window::WindowBuilder};
 
-use wry::WebViewBuilder;
 
 use crate::scripts::load_script_into_string;
 

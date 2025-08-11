@@ -4,8 +4,7 @@ use tao::{
     window::{Window, WindowBuilder},
 };
 
-use muda::accelerator::{Accelerator, Code, Modifiers};
-use muda::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use muda::{Menu, PredefinedMenuItem, Submenu};
 use wry::{WebView, WebViewBuilder};
 
 const ZOOM_FACTOR: f64 = 0.9; // Adjust zoom factor as needed
@@ -123,7 +122,9 @@ impl App {
             ..
         } = self;
 
-        event_loop.run(move |event, _, control_flow| match event {
+        event_loop.run(move |event, _, control_flow| {
+            *control_flow = ControlFlow::Wait;
+            match event {
             tao::event::Event::WindowEvent { event, .. } => match &event {
                 tao::event::WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
@@ -131,9 +132,6 @@ impl App {
 
                 _ => {}
             },
-            tao::event::Event::RedrawRequested(_) => {
-                web_view.reload().unwrap();
-            }
 
             //TODO: I seriously need to update the event handler to support custom events
             tao::event::Event::UserEvent(()) => {
@@ -142,6 +140,6 @@ impl App {
                 }
             }
             _ => (),
-        });
+        }});
     }
 }
