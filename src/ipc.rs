@@ -13,4 +13,7 @@ pub enum IpcMessage {
     ZoomIn,
     #[serde(rename = "zoom_out")]
     ZoomOut,
+
+    #[serde(rename = "loaded")]
+    Loaded
 }

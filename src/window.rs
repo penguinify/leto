@@ -37,6 +37,7 @@ enum UserEvent {
     DragWindow,
     ZoomIn,
     ZoomOut,
+    ShowWindow,
     MenuEvent(muda::MenuEvent),
 }
 
@@ -62,6 +63,7 @@ impl App {
             .with_title_hidden(true)
             .with_background_color(tao::window::RGBA::from((40, 43, 48, 255)))
             .with_min_inner_size(tao::dpi::LogicalSize::new(1200.0, 720.0))
+            .with_visible(false)
             .build(&event_loop)
             .expect("Failed to create window");
 
@@ -105,6 +107,11 @@ impl App {
                     IpcMessage::ClickLink { url } => {
                         if let Err(e) = open::that(&url) {
                             eprintln!("Failed to open URL: {}", e);
+                        }
+                    }
+                    IpcMessage::Loaded => {
+                        if let Err(e) = event_proxy_ipc.send_event(UserEvent::ShowWindow) {
+                            eprintln!("Failed to send loaded event: {}", e);
                         }
                     } // ts just crashes if there is a ipc message that is not handled
                 }
@@ -225,6 +232,8 @@ impl App {
                         eprintln!("Failed to zoom out: {}", e);
                     }
                 }
+
+                Event::UserEvent(UserEvent::ShowWindow) => window.set_visible(true),
 
                 Event::UserEvent(UserEvent::MenuEvent(menu_event)) => {
                     if let Some(reload_id) = &self.reload_menu_id {

@@ -13,7 +13,9 @@ fn main() {
     let mut app = window::App::new(TITLE, 800, 600, WEB_VIEW_URL);
 
     let scripts = load_script_into_string(SCRIPTS_FILE);
-    app.evaluate_script(&scripts);
+    app.evaluate_script(&scripts).unwrap_or_else(|e| {
+        eprintln!("Failed to evaluate script: {}", e);
+    });
 
     app.add_menubar_items();
 
