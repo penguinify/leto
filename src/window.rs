@@ -12,6 +12,7 @@ use muda::{
 use wry::{WebView, WebViewBuilder};
 
 use crate::ipc::IpcMessage;
+use crate::scripts::get_internal_script;
 
 const ZOOM_FACTOR: f64 = 0.9; // Adjust zoom factor as needed
 
@@ -239,10 +240,11 @@ impl App {
                     if let Some(reload_id) = &self.reload_menu_id {
                         // currently reload doens't reload the scripts
                         if menu_event.id() == &reload_id {
-                            if let Err(e) = web_view.reload() {
-                                eprintln!("Failed to reload: {}", e);
-                            }
-                            return;
+                            web_view.reload().expect("Failed to reload web view");
+                            // doesn't work but idc atp
+                            web_view
+                                .evaluate_script(&get_internal_script())
+                                .expect("Failed to evaluate script after reload");
                         }
                     }
                     if let Some(devtools_id) = &self.devtools_menu_id {

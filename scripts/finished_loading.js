@@ -86,6 +86,18 @@ display: flex;
         opacity: 0;
     `;
     text.appendChild(o);
+
+    let credits = document.createElement("p");
+    credits.innerText = "@penguinify";
+    credits.style = `
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        color: white;
+        font-size: 1em;
+        opacity: 0.5;
+    `;
+    wipe.appendChild(credits);
     
     wipe.appendChild(text);
 

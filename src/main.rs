@@ -1,4 +1,4 @@
-use crate::scripts::load_script_into_string;
+use crate::scripts::get_internal_script;
 
 mod ipc;
 mod scripts;
@@ -6,14 +6,11 @@ mod window;
 
 const TITLE: &str = "Leto";
 const WEB_VIEW_URL: &str = "https://discord.com/app";
-const INTERNAL_SCRIPTS_DIR: &str = "./scripts/";
-const SCRIPTS_FILE: &str = "./scripts/internal.js";
 
 fn main() {
     let mut app = window::App::new(TITLE, 800, 600, WEB_VIEW_URL);
 
-    let scripts = load_script_into_string(SCRIPTS_FILE);
-    app.evaluate_script(&scripts).unwrap_or_else(|e| {
+    app.evaluate_script(&get_internal_script()).unwrap_or_else(|e| {
         eprintln!("Failed to evaluate script: {}", e);
     });
 
