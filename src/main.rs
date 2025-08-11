@@ -1,7 +1,6 @@
-
-
 use crate::scripts::load_script_into_string;
 
+mod ipc;
 mod scripts;
 mod window;
 
@@ -15,6 +14,8 @@ fn main() {
 
     let scripts = load_script_into_string(SCRIPTS_FILE);
     app.evaluate_script(&scripts);
+
+    app.add_menubar_items();
 
     app.run();
 }

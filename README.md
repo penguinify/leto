@@ -19,3 +19,15 @@ rust wrapper for discord
 - [ ] Support for vencord, betterdiscord, equicord, and replugged.
 - [ ] Support for custom js
 - [ ] As close to default discord as possible
+
+# how performance is improved
+- rust backend creates lower overhead compared to electron
+- no checking for updates unnecessarily
+- in my testing the webview is more efficient than electrons, but that is dependent on the hardware and webview implementation
+
+# leto vs dorion    
+- dorion uses tauri, while leto uses tao, wry, global-hotkeys, and muda which are the underlying libraries used by tauri.
+- dorion is focused on compatibility and performance, while leto is focused on being a drop-in replacement for discord without auto-updates and without electron.
+
+# contributing
+- to launch use `cargo run`. This runs webpack aswell, im sure that windows and linux aren't working since I haven't added their custom implemnentations yet. If you have a windows or linux machine please open a PR and add platform specific code.

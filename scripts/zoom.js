@@ -1,9 +1,11 @@
 // zoom hotkeys
 
+import { newIpcMessage } from "./ipc";
+
 document.body.addEventListener("keydown", (event) => {
     if (event.ctrlKey && event.key === "+") {
-        window.ipc.postMessage("zoom_in");
+        newIpcMessage("zoom_in", {});
     } else if (event.ctrlKey && event.key === "-") {
-        window.ipc.postMessage("zoom_out");
+        newIpcMessage("zoom_out", {});
     }
 });
