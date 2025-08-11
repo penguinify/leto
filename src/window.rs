@@ -1,5 +1,6 @@
 use tao::{
-    event_loop::{ControlFlow, EventLoop},
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
     platform::macos::WindowBuilderExtMacOS,
     window::{Window, WindowBuilder},
 };
@@ -13,15 +14,23 @@ pub struct App {
     _title: String,
     _width: u32,
     _height: u32,
-    event_loop: EventLoop<()>,
+    event_loop: EventLoop<UserEvent>,
+    zoom_factor: f64,
     window: Window,
     web_view: WebView,
     _web_view_url: String,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum UserEvent {
+    DragWindow,
+    ZoomIn,
+    ZoomOut,
+}
+
 impl App {
     pub fn new(title: &str, width: u32, height: u32, web_view_url: &str) -> Self {
-        let event_loop = EventLoop::new();
+        let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
         let event_proxy = event_loop.create_proxy();
         #[cfg(target_os = "macos")]
         let window = WindowBuilder::new()
@@ -54,8 +63,18 @@ impl App {
                 println!("Received IPC message: {}", message.body());
                 match message.body().as_str() {
                     "drag_window" => {
-                        if let Err(e) = event_proxy.send_event(()) {
+                        if let Err(e) = event_proxy.send_event(UserEvent::DragWindow) {
                             eprintln!("Failed to send drag event: {}", e);
+                        }
+                    }
+                    "zoom_in" => {
+                        if let Err(e) = event_proxy.send_event(UserEvent::ZoomIn) {
+                            eprintln!("Failed to send zoom in event: {}", e);
+                        }
+                    }
+                    "zoom_out" => {
+                        if let Err(e) = event_proxy.send_event(UserEvent::ZoomOut) {
+                            eprintln!("Failed to send zoom out event: {}", e);
                         }
                     }
                     _ => {
@@ -67,7 +86,7 @@ impl App {
             .build(&window)
             .expect("Failed to build web view");
 
-        // realistic zoom level, magic number woooo
+        // realistic zoom level, once the new event loop is implemented I'll make this configurable
         web_view.zoom(ZOOM_FACTOR).unwrap();
 
         App::add_menubar_items();
@@ -77,6 +96,7 @@ impl App {
             _width: width,
             _height: height,
             event_loop,
+            zoom_factor: ZOOM_FACTOR,
             window,
             web_view,
             _web_view_url: web_view_url.to_string(),
@@ -89,7 +109,7 @@ impl App {
     }
 
     pub fn add_menubar_items() {
-        //TODO: add developer tools menu item and update the event loop for custom events
+        //TODO: add developer tools menu item
 
         let menu = Menu::new();
 
@@ -114,32 +134,47 @@ impl App {
         #[cfg(target_os = "macos")]
         menu.init_for_nsapp();
     }
-    pub fn run(self) {
+    pub fn run(mut self) {
         let Self {
             event_loop,
             window,
             web_view,
+            zoom_factor,
             ..
         } = self;
 
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Wait;
             match event {
-            tao::event::Event::WindowEvent { event, .. } => match &event {
-                tao::event::WindowEvent::CloseRequested => {
-                    *control_flow = ControlFlow::Exit;
-                }
+                Event::WindowEvent { event, .. } => match &event {
+                    WindowEvent::CloseRequested => {
+                        *control_flow = ControlFlow::Exit;
+                    }
 
-                _ => {}
-            },
+                    _ => {}
+                },
 
-            //TODO: I seriously need to update the event handler to support custom events
-            tao::event::Event::UserEvent(()) => {
-                if let Err(e) = window.drag_window() {
-                    eprintln!("Failed to drag window: {}", e);
+                Event::UserEvent(UserEvent::DragWindow) => {
+                    if let Err(e) = window.drag_window() {
+                        eprintln!("Failed to drag window: {}", e);
+                    }
                 }
+                Event::UserEvent(UserEvent::ZoomIn) => {
+                    self.zoom_factor += 0.1;
+
+                    if let Err(e) = web_view.zoom(self.zoom_factor) {
+                        eprintln!("Failed to zoom in: {}", e);
+                    }
+                }
+                Event::UserEvent(UserEvent::ZoomOut) => {
+                    self.zoom_factor -= 0.1;
+
+                    if let Err(e) = web_view.zoom(self.zoom_factor) {
+                        eprintln!("Failed to zoom out: {}", e);
+                    }
+                }
+                _ => (),
             }
-            _ => (),
-        }});
+        });
     }
 }

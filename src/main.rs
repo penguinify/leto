@@ -2,7 +2,6 @@
 
 use crate::scripts::load_script_into_string;
 
-mod ipc;
 mod scripts;
 mod window;
 
