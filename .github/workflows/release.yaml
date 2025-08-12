@@ -3,11 +3,10 @@ name: Release
 on:
   push:
     tags:
-      - "v*" # e.g. v1.0.0
+      - "v*"
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -23,33 +22,61 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Node & pnpm
+        uses: pnpm/action-setup@v2
         with:
-          targets: ${{ matrix.target }}
+          node-version: "18"
+          pnpm-version: "latest"
 
-      - name: Install dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.0-dev libgtk-3-dev libayatana-appindicator3-dev
+      - name: Install JS dependencies
+        run: pnpm install
 
-      - name: Build
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Install Linux native dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            libwebkit2gtk-4.0-dev \
+            build-essential \
+            curl wget file \
+            libssl-dev libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+          # Optional: add jammy repo if needed:
+          # echo "deb http://gb.archive.ubuntu.com/ubuntu jammy main" | sudo tee /etc/apt/sources.list.d/jammy.list
+          # sudo apt update && sudo apt install -y libwebkit2gtk-4.0-dev
+
+      - name: Build with cargo
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Package
+      - name: Package (macOS/Linux)
+        if: ${{ matrix.os != 'windows-latest' }}
+        shell: bash
         run: |
-          mkdir dist
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp target/${{ matrix.target }}/release/*.exe dist/
-            7z a ${{ matrix.target }}.zip ./dist/*
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            cp target/${{ matrix.target }}/release/* dist/
-            zip -r ${{ matrix.target }}.zip dist
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/* dist/ || true
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            zip -r "${{ matrix.target }}.zip" dist
           else
-            cp target/${{ matrix.target }}/release/* dist/
-            tar -czvf ${{ matrix.target }}.tar.gz dist
+            tar -czvf "${{ matrix.target }}.tar.gz" dist
           fi
 
-      - name: Upload build
+      - name: Package (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item -Path "target/${{ matrix.target }}/release/*.exe" -Destination dist/ -ErrorAction SilentlyContinue
+          Compress-Archive -Path dist/* -DestinationPath "${{ matrix.target }}.zip"
+
+      - name: Create Release & Upload
         uses: softprops/action-gh-release@v2
         with:
           files: |
