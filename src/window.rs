@@ -14,14 +14,11 @@ use wry::{WebView, WebViewBuilder};
 use crate::ipc::IpcMessage;
 use crate::scripts::get_internal_script;
 
-const ZOOM_FACTOR: f64 = 0.9; // Adjust zoom factor as needed
-
 pub struct App {
     _title: String,
     _width: u32,
     _height: u32,
     event_loop: EventLoop<UserEvent>,
-    zoom_factor: f64,
     window: Window,
     web_view: WebView,
     // prevent pointer issues
@@ -36,8 +33,7 @@ pub struct App {
 #[derive(Debug, Clone)]
 enum UserEvent {
     DragWindow,
-    ZoomIn,
-    ZoomOut,
+    Zoom(f64),
     ShowWindow,
     MenuEvent(muda::MenuEvent),
 }
@@ -63,7 +59,7 @@ impl App {
             .with_titlebar_transparent(true)
             .with_title_hidden(true)
             .with_background_color(tao::window::RGBA::from((40, 43, 48, 255)))
-            .with_min_inner_size(tao::dpi::LogicalSize::new(1200.0, 720.0))
+            .with_min_inner_size(tao::dpi::LogicalSize::new(936.0, 720.0))
             .with_visible(false)
             .build(&event_loop)
             .expect("Failed to create window");
@@ -95,14 +91,9 @@ impl App {
                             eprintln!("Failed to send drag event: {}", e);
                         }
                     }
-                    IpcMessage::ZoomIn => {
-                        if let Err(e) = event_proxy_ipc.send_event(UserEvent::ZoomIn) {
+                    IpcMessage::Zoom { level } => {
+                        if let Err(e) = event_proxy_ipc.send_event(UserEvent::Zoom(level)) {
                             eprintln!("Failed to send zoom in event: {}", e);
-                        }
-                    }
-                    IpcMessage::ZoomOut => {
-                        if let Err(e) = event_proxy_ipc.send_event(UserEvent::ZoomOut) {
-                            eprintln!("Failed to send zoom out event: {}", e);
                         }
                     }
                     IpcMessage::ClickLink { url } => {
@@ -118,18 +109,20 @@ impl App {
                 }
             })
             .with_devtools(true)
+            .with_new_window_req_handler(
+                move |request| {
+                    let _ = open::that(&request);
+                    false
+                },
+            )
             .build(&window)
             .expect("Failed to build web view");
-
-        // realistic zoom level, once the new event loop is implemented I'll make this configurable
-        web_view.zoom(ZOOM_FACTOR).unwrap();
 
         Self {
             _title: title.to_string(),
             _width: width,
             _height: height,
             event_loop,
-            zoom_factor: ZOOM_FACTOR,
             window,
             menu_items: None,
             submenus: None,
@@ -195,7 +188,7 @@ impl App {
         self.submenus = Some(vec![about_m, developer_m]);
         self.menu_items = Some(vec![developer_tools_menu_item, reload_menu_item]);
     }
-    pub fn run(mut self) {
+    pub fn run(self) {
         let Self {
             event_loop,
             window,
@@ -219,18 +212,9 @@ impl App {
                         eprintln!("Failed to drag window: {}", e);
                     }
                 }
-                Event::UserEvent(UserEvent::ZoomIn) => {
-                    self.zoom_factor += 0.1;
-
-                    if let Err(e) = web_view.zoom(self.zoom_factor) {
+                Event::UserEvent(UserEvent::Zoom(level)) => {
+                    if let Err(e) = web_view.zoom(level) {
                         eprintln!("Failed to zoom in: {}", e);
-                    }
-                }
-                Event::UserEvent(UserEvent::ZoomOut) => {
-                    self.zoom_factor -= 0.1;
-
-                    if let Err(e) = web_view.zoom(self.zoom_factor) {
-                        eprintln!("Failed to zoom out: {}", e);
                     }
                 }
 

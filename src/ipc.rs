@@ -7,10 +7,8 @@ pub enum IpcMessage {
     #[serde(rename = "click_link")]
     ClickLink { url: String },
 
-    #[serde(rename = "zoom_in")]
-    ZoomIn,
-    #[serde(rename = "zoom_out")]
-    ZoomOut,
+    #[serde(rename = "zoom")]
+    Zoom { level: f64 },
 
     #[serde(rename = "loaded")]
     Loaded,
