@@ -1,2 +1,5 @@
 /target
 /node_modules
+cargo.lock
+pnpm-lock.yaml
+.DS_Store

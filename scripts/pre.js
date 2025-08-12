@@ -1,0 +1,1 @@
+(()=>{"use strict";document.addEventListener("DOMContentLoaded",()=>{let e=document.querySelector("body > script:nth-child(4)");!function(e){const t=(new Date).toISOString();console.log(`[${t}] [leto]`,e)}(e),e&&e.remove()})})();

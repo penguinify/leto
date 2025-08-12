@@ -2,10 +2,10 @@ const path = require('path');
 
 module.exports = {
     // gets all the files in the ./scripts
-    entry: "./scripts/index.js",
+    entry: {"./scripts/pre": "./scripts/preInject/index.js", "./scripts/post": "./scripts/postInject/index.js"},
     mode: 'production',
     output: {
-        filename: 'internal.js',
-        path: path.resolve(__dirname, 'scripts'),
+        filename: '[name].js',
+        path: path.resolve(__dirname),
     },
 };

@@ -12,7 +12,7 @@ use muda::{
 use wry::{WebView, WebViewBuilder};
 
 use crate::ipc::IpcMessage;
-use crate::scripts::get_internal_script;
+use crate::scripts::get_pre_inject_script;
 
 pub struct App {
     _title: String,
@@ -110,11 +110,12 @@ impl App {
             })
             .with_devtools(true)
             .with_new_window_req_handler(
-                move |request| {
-                    let _ = open::that(&request);
+                move |url| {
+                    let _ = open::that(&url);
                     false
                 },
             )
+            .with_initialization_script(get_pre_inject_script())
             .build(&window)
             .expect("Failed to build web view");
 
@@ -155,6 +156,32 @@ impl App {
             ])
             .unwrap();
 
+        let edit_m = Submenu::new("edit", true);
+        menu.append(&edit_m).unwrap();
+
+        edit_m
+            .append_items(&[
+                &PredefinedMenuItem::undo(None),
+                &PredefinedMenuItem::redo(None),
+                &PredefinedMenuItem::separator(),
+                &PredefinedMenuItem::cut(None),
+                &PredefinedMenuItem::copy(None),
+                &PredefinedMenuItem::paste(None),
+                &PredefinedMenuItem::select_all(None),
+            ])
+            .unwrap();
+
+        let window_m = Submenu::new("window", true);
+        menu.append(&window_m).unwrap();
+
+        window_m
+            .append_items(&[
+                &PredefinedMenuItem::minimize(None),
+                &PredefinedMenuItem::separator(),
+                &PredefinedMenuItem::bring_all_to_front(None),
+            ])
+            .unwrap();
+
         let developer_m = Submenu::new("developer", true);
 
         let developer_tools_menu_item = MenuItem::new(
@@ -182,6 +209,7 @@ impl App {
         about_m.init_for_gtk_window(&gtk_window, Some(&vertical_gtk_box));
         #[cfg(target_os = "macos")]
         menu.init_for_nsapp();
+        window_m.set_as_windows_menu_for_nsapp();
 
         self.reload_menu_id = Some(reload_menu_item.id().clone());
         self.devtools_menu_id = Some(developer_tools_menu_item.id().clone());
@@ -226,9 +254,6 @@ impl App {
                         if menu_event.id() == &reload_id {
                             web_view.reload().expect("Failed to reload web view");
                             // doesn't work but idc atp
-                            web_view
-                                .evaluate_script(&get_internal_script())
-                                .expect("Failed to evaluate script after reload");
                         }
                     }
                     if let Some(devtools_id) = &self.devtools_menu_id {

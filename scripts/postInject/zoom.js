@@ -1,6 +1,7 @@
 // zoom hotkeys
 
-import { newIpcMessage } from "./ipc";
+import { newIpcMessage } from "../shared/ipc";
+import { logMessage } from "../shared/logger";
 
 const zoomCookie = document.cookie
     .split('; ')
@@ -11,8 +12,8 @@ if (zoomLevel !== 1.0) {
     newIpcMessage("zoom", { level: zoomLevel });
 }
 
-console.log("Zoom level initialized to:", zoomLevel);
 
+logMessage(`Zoom level initialized to ${zoomLevel}`);
 
 
 document.body.addEventListener("keydown", (event) => {

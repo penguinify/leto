@@ -11,5 +11,4 @@ fn main() {
         panic!("pnpm webpack failed with status: {:?}", status.code());
     }
 
-    println!("cargo:rerun-if-changed=scripts/");
 }

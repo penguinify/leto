@@ -1,5 +1,5 @@
 // sends ipc message when the page has finished loading
-import { newIpcMessage } from "./ipc";
+import { newIpcMessage } from "../shared/ipc";
 
 function intro_animation() {
 
@@ -29,7 +29,7 @@ function intro_animation() {
 }
     `;
 
-document.head.appendChild(keyframes);
+    document.head.appendChild(keyframes);
 
     let wipe = document.createElement("div");
     wipe.style = `
@@ -98,7 +98,7 @@ display: flex;
         opacity: 0.5;
     `;
     wipe.appendChild(credits);
-    
+
     wipe.appendChild(text);
 
     wipe.animate([
@@ -114,7 +114,7 @@ display: flex;
 
     document.body.appendChild(wipe);
 
-setTimeout(() => {
+    setTimeout(() => {
         wipe.remove();
     }, 2000);
 }
