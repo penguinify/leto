@@ -1,20 +1,46 @@
+use std::env;
 use std::fs;
+use std::path::{Path, PathBuf};
 
-const POST_INJECT_SCRIPTS_FILE: &str = "./scripts/post.js";
-const PRE_INJECT_SCRIPTS_FILE: &str = "./scripts/pre.js";
+fn get_executable_dir() -> Option<PathBuf> {
+    env::current_exe()
+        .ok()
+        .and_then(|exe_path| exe_path.parent().map(|p| p.to_path_buf()))
+}
 
-pub fn load_script_into_string(script: &str) -> String {
-    let mut script_string = String::new();
-    if let Ok(content) = fs::read_to_string(script) {
-        script_string.push_str(&content);
+fn get_script_path(script_name: &str) -> Option<PathBuf> {
+    get_executable_dir().map(|exe_dir| exe_dir.join("../Resources/scripts").join(script_name))
+}
+
+pub fn load_script_into_string(script_name: &str) -> String {
+    tracing::info!("Loading script: {}", script_name);
+
+    if let Some(script_path) = get_script_path(script_name) {
+        match fs::read_to_string(&script_path) {
+            Ok(content) => {
+                tracing::info!("Successfully loaded script from {}", script_path.display());
+                content
+            }
+            Err(e) => {
+                tracing::error!("Failed to load script '{}': {}", script_path.display(), e);
+                String::new()
+            }
+        }
+    } else {
+        tracing::error!(
+            "Failed to determine executable directory; can't load script '{}'",
+            script_name
+        );
+        String::new()
     }
-    script_string
 }
 
 pub fn get_post_inject_script() -> String {
-    load_script_into_string(POST_INJECT_SCRIPTS_FILE)
+    tracing::info!("Getting post-inject script.");
+    load_script_into_string("post.js")
 }
 
 pub fn get_pre_inject_script() -> String {
-    load_script_into_string(PRE_INJECT_SCRIPTS_FILE)
+    tracing::info!("Getting pre-inject script.");
+    load_script_into_string("pre.js")
 }

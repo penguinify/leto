@@ -14,6 +14,8 @@ use wry::{WebView, WebViewBuilder};
 use crate::ipc::IpcMessage;
 use crate::scripts::get_pre_inject_script;
 
+use tracing::{error, info};
+
 pub struct App {
     _title: String,
     _width: u32,
@@ -34,18 +36,24 @@ pub struct App {
 enum UserEvent {
     DragWindow,
     Zoom(f64),
-    ShowWindow,
     MenuEvent(muda::MenuEvent),
 }
 
 impl App {
     pub fn new(title: &str, width: u32, height: u32, web_view_url: &str) -> Self {
+        info!(
+            "Initializing App with title: {}, size: {}x{}, url: {}",
+            title, width, height, web_view_url
+        );
         let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
         let event_proxy_muda = event_loop.create_proxy();
+
         // menu events
         muda::MenuEvent::set_event_handler(Some(move |event| {
             if let Err(e) = event_proxy_muda.send_event(UserEvent::MenuEvent(event)) {
-                eprintln!("Failed to send menu event: {}", e);
+                error!("Failed to send menu event: {}", e);
+            } else {
+                info!("Sent menu event");
             }
         }));
 
@@ -60,17 +68,18 @@ impl App {
             .with_title_hidden(true)
             .with_background_color(tao::window::RGBA::from((40, 43, 48, 255)))
             .with_min_inner_size(tao::dpi::LogicalSize::new(936.0, 720.0))
-            .with_visible(false)
             .build(&event_loop)
             .expect("Failed to create window");
+        info!("Window created");
 
-        window
-            .set_ignore_cursor_events(false)
-            .expect("Failed to set ignore cursor events");
+        if let Err(e) = window.set_ignore_cursor_events(false) {
+            error!("Failed to set ignore cursor events: {}", e);
+        } else {
+            info!("Set ignore cursor events to false");
+        }
 
         let event_proxy_ipc = event_loop.create_proxy();
 
-        // Taken from Lemoncord
         #[cfg(target_os = "macos")]
         let user_agent: String = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15".to_string();
 
@@ -80,44 +89,43 @@ impl App {
             .with_user_agent(user_agent)
             .with_background_color(tao::window::RGBA::from((40, 43, 48, 255)))
             .with_ipc_handler(move |message| {
-                println!("Received IPC message: {}", message.body());
+                info!("Received IPC message: {}", message.body());
 
-                let json_message: IpcMessage =
-                    serde_json::from_str(&message.body()).expect("Failed to parse IPC message");
+                let json_message: IpcMessage = match serde_json::from_str(&message.body()) {
+                    Ok(msg) => msg,
+                    Err(e) => {
+                        error!("Failed to parse IPC message: {}", e);
+                        return;
+                    }
+                };
 
                 match json_message {
                     IpcMessage::DragWindow => {
                         if let Err(e) = event_proxy_ipc.send_event(UserEvent::DragWindow) {
-                            eprintln!("Failed to send drag event: {}", e);
+                            error!("Failed to send drag event: {}", e);
+                        } else {
+                            info!("DragWindow event sent");
                         }
                     }
                     IpcMessage::Zoom { level } => {
                         if let Err(e) = event_proxy_ipc.send_event(UserEvent::Zoom(level)) {
-                            eprintln!("Failed to send zoom in event: {}", e);
+                            error!("Failed to send zoom event: {}", e);
+                        } else {
+                            info!("Zoom event sent with level {}", level);
                         }
                     }
-                    IpcMessage::ClickLink { url } => {
-                        if let Err(e) = open::that(&url) {
-                            eprintln!("Failed to open URL: {}", e);
-                        }
-                    }
-                    IpcMessage::Loaded => {
-                        if let Err(e) = event_proxy_ipc.send_event(UserEvent::ShowWindow) {
-                            eprintln!("Failed to send loaded event: {}", e);
-                        }
-                    } // ts just crashes if there is a ipc message that is not handled
                 }
             })
             .with_devtools(true)
-            .with_new_window_req_handler(
-                move |url| {
-                    let _ = open::that(&url);
-                    false
-                },
-            )
+            .with_new_window_req_handler(move |url| {
+                info!("New window request for URL: {}", url);
+                let _ = open::that(&url);
+                false
+            })
             .with_initialization_script(get_pre_inject_script())
             .build(&window)
             .expect("Failed to build web view");
+        info!("WebView built");
 
         Self {
             _title: title.to_string(),
@@ -134,13 +142,13 @@ impl App {
         }
     }
 
-    // very scary function
     pub fn evaluate_script(&mut self, script: &str) -> Result<(), wry::Error> {
+        info!("Evaluating script");
         self.web_view.evaluate_script(script)
     }
 
     pub fn add_menubar_items(&mut self) {
-        //TODO: add developer tools menu item
+        info!("Adding menubar items");
 
         let menu = Menu::new();
 
@@ -215,8 +223,12 @@ impl App {
         self.devtools_menu_id = Some(developer_tools_menu_item.id().clone());
         self.submenus = Some(vec![about_m, developer_m]);
         self.menu_items = Some(vec![developer_tools_menu_item, reload_menu_item]);
+
+        info!("Menubar items added");
     }
+
     pub fn run(self) {
+        info!("Starting event loop");
         let Self {
             event_loop,
             window,
@@ -229,42 +241,44 @@ impl App {
             match event {
                 Event::WindowEvent { event, .. } => match &event {
                     WindowEvent::CloseRequested => {
+                        info!("Window close requested, exiting");
                         *control_flow = ControlFlow::Exit;
                     }
-
                     _ => {}
                 },
 
                 Event::UserEvent(UserEvent::DragWindow) => {
+                    info!("Handling DragWindow event");
                     if let Err(e) = window.drag_window() {
-                        eprintln!("Failed to drag window: {}", e);
+                        error!("Failed to drag window: {}", e);
                     }
                 }
                 Event::UserEvent(UserEvent::Zoom(level)) => {
+                    info!("Handling Zoom event with level: {}", level);
                     if let Err(e) = web_view.zoom(level) {
-                        eprintln!("Failed to zoom in: {}", e);
+                        error!("Failed to zoom in: {}", e);
                     }
                 }
 
-                Event::UserEvent(UserEvent::ShowWindow) => window.set_visible(true),
-
                 Event::UserEvent(UserEvent::MenuEvent(menu_event)) => {
+                    info!("Handling MenuEvent: {:?}", menu_event);
                     if let Some(reload_id) = &self.reload_menu_id {
-                        // currently reload doens't reload the scripts
                         if menu_event.id() == &reload_id {
-                            web_view.reload().expect("Failed to reload web view");
-                            // doesn't work but idc atp
+                            info!("Reload menu selected, reloading web view");
+                            if let Err(e) = web_view.reload() {
+                                error!("Failed to reload web view: {}", e);
+                            }
                         }
                     }
                     if let Some(devtools_id) = &self.devtools_menu_id {
                         if menu_event.id() == &devtools_id {
+                            info!("Developer tools menu selected, opening devtools");
                             web_view.open_devtools();
                             return;
                         }
                     }
-                    println!("Menu event: {:?}", menu_event);
                 }
-                _ => (),
+                _ => {}
             }
         });
     }
