@@ -9,7 +9,15 @@ fn get_executable_dir() -> Option<PathBuf> {
 }
 
 fn get_script_path(script_name: &str) -> Option<PathBuf> {
-    get_executable_dir().map(|exe_dir| exe_dir.join("../Resources/scripts").join(script_name))
+    if cfg!(debug_assertions) {
+        env::current_dir()
+            .ok()
+            .map(|cwd| cwd.join("scripts").join(script_name))
+    } else if cfg!(target_os = "macos") {
+        get_executable_dir().map(|exe_dir| exe_dir.join("../Resources/scripts").join(script_name))
+    } else {
+        get_executable_dir().map(|exe_dir| exe_dir.join("scripts").join(script_name))
+    }
 }
 
 pub fn load_script_into_string(script_name: &str) -> String {
