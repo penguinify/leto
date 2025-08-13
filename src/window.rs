@@ -5,11 +5,17 @@ use tao::{
     window::{Window, WindowBuilder},
 };
 
+use std::borrow::Cow;
+#[cfg(target_os = "macos")]
+use std::path::PathBuf;
+
 use muda::{
     Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu,
     accelerator::{Accelerator, Code, Modifiers},
 };
-use wry::{WebView, WebViewBuilder};
+use wry::{WebView, WebViewBuilder, WebViewId};
+
+use http::{Request, Response};
 
 use crate::ipc::IpcMessage;
 use crate::scripts::get_pre_inject_script;

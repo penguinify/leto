@@ -23,9 +23,13 @@ rust wrapper for discord
 - no checking for updates unnecessarily
 - in my testing the webview is more efficient than electrons, but that is dependent on the hardware and webview implementation
 
+# patching
+leto patching is similar to vencord patching, but less advanced and doesn't have as many features. It is just used for basic actions and is not meant to be used outside of leto. You define a search term and a action, and that search term is searched for on specific urls to minimize inefficiency as well as the general location of the search term.
+
 # leto vs dorion    
 - dorion uses tauri, while leto uses tao, wry, global-hotkeys, and muda which are the underlying libraries used by tauri.
 - dorion is focused on compatibility and performance, while leto is focused on being a drop-in replacement for discord without auto-updates and without electron.
 
 # contributing
 - to launch use `cargo run`. This runs webpack aswell, im sure that windows and linux aren't working since I haven't added their custom implemnentations yet. If you have a windows or linux machine please open a PR and add platform specific code.
+
