@@ -5,19 +5,17 @@ use tao::{
     window::{Window, WindowBuilder},
 };
 
-use std::borrow::Cow;
-#[cfg(target_os = "macos")]
-use std::path::PathBuf;
+use rsrpc::detection::DetectableActivity;
 
+#[cfg(target_os = "macos")]
 use muda::{
     Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu,
     accelerator::{Accelerator, Code, Modifiers},
 };
-use wry::{WebView, WebViewBuilder, WebViewId};
-
-use http::{Request, Response};
+use wry::{WebView, WebViewBuilder};
 
 use crate::ipc::IpcMessage;
+use crate::microphone;
 use crate::scripts::get_pre_inject_script;
 
 use tracing::{error, info};
@@ -35,6 +33,7 @@ pub struct App {
     submenus: Option<Vec<Submenu>>,
     reload_menu_id: Option<MenuId>,
     devtools_menu_id: Option<MenuId>,
+    request_mid_permission_id: Option<MenuId>,
     _web_view_url: String,
 }
 
@@ -125,6 +124,13 @@ impl App {
             .with_devtools(true)
             .with_new_window_req_handler(move |url| {
                 info!("New window request for URL: {}", url);
+
+                // makes sure it isn't an embed
+                if url.contains("embed") {
+                    info!("Ignoring embed URL: {}", url);
+                    return false;
+                }
+
                 let _ = open::that(&url);
                 false
             })
@@ -141,6 +147,7 @@ impl App {
             window,
             menu_items: None,
             submenus: None,
+            request_mid_permission_id: None,
             reload_menu_id: None,
             devtools_menu_id: None,
             web_view,
@@ -206,12 +213,16 @@ impl App {
 
         let reload_menu_item = MenuItem::new("Reload", true, None);
 
+        let request_mic_permission_item =
+            MenuItem::new("Request Microphone Permission", true, None);
+
         menu.append(&developer_m).unwrap();
         developer_m
             .append_items(&[
                 &developer_tools_menu_item,
                 &PredefinedMenuItem::separator(),
                 &reload_menu_item,
+                &request_mic_permission_item,
             ])
             .unwrap();
 
@@ -227,8 +238,13 @@ impl App {
 
         self.reload_menu_id = Some(reload_menu_item.id().clone());
         self.devtools_menu_id = Some(developer_tools_menu_item.id().clone());
+        self.request_mid_permission_id = Some(request_mic_permission_item.id().clone());
         self.submenus = Some(vec![about_m, developer_m]);
-        self.menu_items = Some(vec![developer_tools_menu_item, reload_menu_item]);
+        self.menu_items = Some(vec![
+            developer_tools_menu_item,
+            reload_menu_item,
+            request_mic_permission_item,
+        ]);
 
         info!("Menubar items added");
     }
@@ -281,6 +297,24 @@ impl App {
                             info!("Developer tools menu selected, opening devtools");
                             web_view.open_devtools();
                             return;
+                        }
+                    }
+                    if let Some(request_mic_id) = &self.request_mid_permission_id {
+                        if menu_event.id() == &request_mic_id {
+                            info!("Request microphone permission menu selected");
+                            #[cfg(target_os = "macos")]
+                            {
+                                microphone::InputAudio::new()
+                                    .and_then(|mut input_audio| {
+                                        input_audio.start_stream().map_err(|e| {
+                                            error!("Failed to start microphone stream: {}", e);
+                                            e
+                                        })
+                                    })
+                                    .unwrap_or_else(|_| {
+                                        error!("Failed to request microphone permission");
+                                    });
+                            }
                         }
                     }
                 }

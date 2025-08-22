@@ -1,6 +1,9 @@
 use crate::scripts::get_post_inject_script;
 
+mod html_patching;
 mod ipc;
+mod microphone;
+mod rpc;
 mod scripts;
 mod window;
 
