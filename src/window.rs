@@ -5,8 +5,7 @@ use tao::{
     window::{Window, WindowBuilder},
 };
 
-use rsrpc::detection::DetectableActivity;
-
+// use rsrpc::detection::DetectableActivity;
 #[cfg(target_os = "macos")]
 use muda::{
     Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu,
@@ -250,76 +249,91 @@ impl App {
     }
 
     pub fn run(self) {
-        info!("Starting event loop");
+        info!("App::run - Starting event loop");
         let Self {
             event_loop,
             window,
             web_view,
+            reload_menu_id,
+            devtools_menu_id,
+            request_mid_permission_id,
             ..
         } = self;
 
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Wait;
             match event {
-                Event::WindowEvent { event, .. } => match &event {
-                    WindowEvent::CloseRequested => {
-                        info!("Window close requested, exiting");
+                Event::WindowEvent { event, .. } => {
+                    if let WindowEvent::CloseRequested = &event {
+                        info!("App::run - Window close requested, exiting");
                         *control_flow = ControlFlow::Exit;
                     }
-                    _ => {}
-                },
-
-                Event::UserEvent(UserEvent::DragWindow) => {
-                    info!("Handling DragWindow event");
-                    if let Err(e) = window.drag_window() {
-                        error!("Failed to drag window: {}", e);
-                    }
                 }
-                Event::UserEvent(UserEvent::Zoom(level)) => {
-                    info!("Handling Zoom event with level: {}", level);
-                    if let Err(e) = web_view.zoom(level) {
-                        error!("Failed to zoom in: {}", e);
-                    }
-                }
-
-                Event::UserEvent(UserEvent::MenuEvent(menu_event)) => {
-                    info!("Handling MenuEvent: {:?}", menu_event);
-                    if let Some(reload_id) = &self.reload_menu_id {
-                        if menu_event.id() == &reload_id {
-                            info!("Reload menu selected, reloading web view");
-                            if let Err(e) = web_view.reload() {
-                                error!("Failed to reload web view: {}", e);
-                            }
-                        }
-                    }
-                    if let Some(devtools_id) = &self.devtools_menu_id {
-                        if menu_event.id() == &devtools_id {
-                            info!("Developer tools menu selected, opening devtools");
-                            web_view.open_devtools();
-                            return;
-                        }
-                    }
-                    if let Some(request_mic_id) = &self.request_mid_permission_id {
-                        if menu_event.id() == &request_mic_id {
-                            info!("Request microphone permission menu selected");
-                            #[cfg(target_os = "macos")]
-                            {
-                                microphone::InputAudio::new()
-                                    .and_then(|mut input_audio| {
-                                        input_audio.start_stream().map_err(|e| {
-                                            error!("Failed to start microphone stream: {}", e);
-                                            e
-                                        })
-                                    })
-                                    .unwrap_or_else(|_| {
-                                        error!("Failed to request microphone permission");
-                                    });
-                            }
-                        }
-                    }
+                Event::UserEvent(user_event) => {
+                    Self::handle_user_event(
+                        user_event,
+                        &window,
+                        &web_view,
+                        reload_menu_id.as_ref(),
+                        devtools_menu_id.as_ref(),
+                        request_mid_permission_id.as_ref(),
+                    );
                 }
                 _ => {}
             }
         });
+    }
+
+    fn handle_user_event(
+        user_event: UserEvent,
+        window: &Window,
+        web_view: &WebView,
+        reload_menu_id: Option<&MenuId>,
+        devtools_menu_id: Option<&MenuId>,
+        request_mid_permission_id: Option<&MenuId>,
+    ) {
+        match user_event {
+            UserEvent::DragWindow => {
+                info!("App::run - Handling DragWindow event");
+                if let Err(e) = window.drag_window() {
+                    error!("App::run - Failed to drag window: {}", e);
+                }
+            }
+            UserEvent::Zoom(level) => {
+                info!("App::run - Handling Zoom event, level: {}", level);
+                if let Err(e) = web_view.zoom(level) {
+                    error!("App::run - Failed to zoom: {}", e);
+                }
+            }
+            UserEvent::MenuEvent(menu_event) => {
+                info!("App::run - Handling MenuEvent: {:?}", menu_event);
+
+                if reload_menu_id.map_or(false, |id| menu_event.id() == id) {
+                    info!("App::run - Reload menu selected, reloading web view");
+                    if let Err(e) = web_view.reload() {
+                        error!("App::run - Failed to reload web view: {}", e);
+                    }
+                    return;
+                }
+                if devtools_menu_id.map_or(false, |id| menu_event.id() == id) {
+                    info!("App::run - Developer tools menu selected, opening devtools");
+                    web_view.open_devtools();
+                    return;
+                }
+                if request_mid_permission_id.map_or(false, |id| menu_event.id() == id) {
+                    info!("App::run - Request microphone permission menu selected");
+                    #[cfg(target_os = "macos")]
+                    {
+                        if let Ok(mut input_audio) = microphone::InputAudio::new() {
+                            if let Err(e) = input_audio.start_stream() {
+                                error!("App::run - Failed to start microphone stream: {}", e);
+                            }
+                        } else {
+                            error!("App::run - Failed to request microphone permission");
+                        }
+                    }
+                }
+            }
+        }
     }
 }

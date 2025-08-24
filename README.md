@@ -15,7 +15,7 @@ rust wrapper for discord
 - [ ] No Jank
 - [ ] VC Support
 - [X] Link support
-- [X] Multiple input and output device (just input at the moment)
+- [ ] Multiple input and output devices
 - [ ] Support for vencord, betterdiscord, equicord, and replugged.
 - [X] Support for custom js
 - [ ] As close to default discord as possible

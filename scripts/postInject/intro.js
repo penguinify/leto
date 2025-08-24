@@ -1,5 +1,8 @@
 // sends ipc message when the page has finished loading
 import { newIpcMessage } from "../shared/ipc";
+import Background from "./background.svg";
+
+console.log(Background)
 
 function intro_animation() {
 
@@ -38,7 +41,8 @@ function intro_animation() {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: black;
+    background-image: url('data:image/svg+xml;utf8,${encodeURIComponent(Background)}');
+    background-size: cover;
     z-index: 9999;
     display: flex;
     justify-content: center;
@@ -48,10 +52,12 @@ function intro_animation() {
 
     let text = document.createElement("div");
     text.style = `
-    font-size: 4em;
+    font-size: 8em;
     color: white;
     z-index: 10000;
     display: flex;
+    font-family: 'Times New Roman', Times, serif;
+    mix-blend-mode: difference;
 
     `;
 
@@ -102,7 +108,9 @@ function intro_animation() {
     wipe.appendChild(text);
 
     wipe.animate([
-        { opacity: 1 },
+        {
+            opacity: 1
+        },
         { opacity: 0 }
     ], {
         duration: 1000,
@@ -111,6 +119,19 @@ function intro_animation() {
         easing: "ease-in-out"
     });
 
+    text.animate([
+        {
+            transform: "scale(1)"
+        },
+        {
+            transform: "scale(1.3)",
+            opacity: 0.5
+        }], {
+        duration: 800,
+        delay: 1200,
+        fill: "forwards",
+        easing: "ease-in-out"
+    });
 
     document.body.appendChild(wipe);
 

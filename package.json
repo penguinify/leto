@@ -13,6 +13,8 @@
         "webpack": "^5.101.0"
     },
     "devDependencies": {
+        "@svgr/webpack": "^8.1.0",
+        "svg-inline-loader": "^0.8.2",
         "webpack-cli": "^6.0.1"
     }
 }
