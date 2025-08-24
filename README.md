@@ -25,7 +25,7 @@ rust wrapper for discord
 - in my testing the webview is more efficient than electrons, but that is dependent on the hardware and webview implementation
 
 ## patching
-leto patching is similar to vencord patching, but less advanced and doesn't have as many features. It is just used for basic actions and is not meant to be used outside of leto. You define a search term and a action, and that search term is searched for on specific urls to minimize inefficiency as well as the general location of the search term.
+leto uses a mix of js scripts and shelter plugins, just like Dorion
 
 ## leto vs dorion    
 - dorion uses tauri, while leto uses tao, wry, global-hotkeys, and muda which are the underlying libraries used by tauri.
