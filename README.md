@@ -7,18 +7,17 @@ rust wrapper for discord
 ## goals
 - [x] Non native discord features
 - [ ] RPC (rust implementation)
-- [ ] OS Tray + window features
+- [X] Window features
+- [ ] OS Tray
 - [ ] Notifications and sound
 - [ ] Global keybinds
 - [ ] Support for ARM, Linux, and Windows (Only OSX ARM + x86 for now since I don't have a Linux or Windows machine)
-- [x] Faster and lighter than Discord + OpenASAR (9s launch time) (this will always be ongoing but currently it starts in a few seconds)
-- [ ] No Jank
-- [ ] VC Support
+- [x] Faster and lighter than Discord + OpenASAR (Currently is)
+- [X] VC Support
 - [X] Link support
-- [ ] Multiple input and output devices
+- [X] Multiple input and output devices (only input atm)
 - [ ] Support for vencord, betterdiscord, equicord, and replugged.
 - [X] Support for custom js
-- [ ] As close to default discord as possible
 
 ## how performance is improved
 - rust backend creates lower overhead compared to electron
