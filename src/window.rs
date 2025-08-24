@@ -21,8 +21,6 @@ use tracing::{error, info};
 
 pub struct App {
     _title: String,
-    _width: u32,
-    _height: u32,
     event_loop: EventLoop<UserEvent>,
     window: Window,
     web_view: WebView,
@@ -44,10 +42,10 @@ enum UserEvent {
 }
 
 impl App {
-    pub fn new(title: &str, width: u32, height: u32, web_view_url: &str) -> Self {
+    pub fn new(title: &str, web_view_url: &str) -> Self {
         info!(
-            "Initializing App with title: {}, size: {}x{}, url: {}",
-            title, width, height, web_view_url
+            "Initializing App with title: {}, url: {}",
+            title, web_view_url
         );
         let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
         let event_proxy_muda = event_loop.create_proxy();
@@ -64,7 +62,6 @@ impl App {
         #[cfg(target_os = "macos")]
         let window = WindowBuilder::new()
             .with_title(title)
-            .with_inner_size(tao::dpi::LogicalSize::new(width, height))
             .with_transparent(false)
             .with_resizable(true)
             .with_fullsize_content_view(true)
@@ -140,8 +137,6 @@ impl App {
 
         Self {
             _title: title.to_string(),
-            _width: width,
-            _height: height,
             event_loop,
             window,
             menu_items: None,
