@@ -6,10 +6,12 @@ rust wrapper for discord
 
 ## goals
 - [x] Non native discord features
+- [X] Video + Screenshare
 - [ ] RPC (rust implementation)
 - [X] Window features
 - [ ] OS Tray
-- [ ] Notifications and sound
+- [ ] Notifications
+- [X] Sound
 - [ ] Global keybinds
 - [ ] Support for ARM, Linux, and Windows (Only OSX ARM + x86 for now since I don't have a Linux or Windows machine)
 - [x] Faster and lighter than Discord + OpenASAR (Currently is)
@@ -33,4 +35,5 @@ leto uses a mix of js scripts and shelter plugins, just like Dorion
 
 ## contributing
 - to launch use `cargo run`. This runs webpack aswell, im sure that windows and linux aren't working since I haven't added their custom implemnentations yet. If you have a windows or linux machine please open a PR and add platform specific code.
+- Scripts are hot trash right now, and I plan to move most of them into shelter plugins, similar to Dorion
 
