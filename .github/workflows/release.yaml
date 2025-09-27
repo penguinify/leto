@@ -76,7 +76,7 @@ jobs:
 
           # Ad-hoc codesign with entitlements
           codesign --force --deep --options runtime \
-            --entitlements src/macos/leto.entitlements \
+            --entitlements macos/leto.entitlements \
             -s - "$APP_PATH"
 
       - name: Package (macOS)
