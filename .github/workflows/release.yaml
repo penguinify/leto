@@ -67,20 +67,17 @@ jobs:
         if: ${{ matrix.os == 'macos-latest' }}
         shell: bash
         run: |
-          APP_PATH="target/${{ matrix.target }}/release/bundle/osx/"*.app
+          APP_PATH="target/${{ matrix.target }}/release/bundle/osx/leto.app"
           PLIST="$APP_PATH/Contents/Info.plist"
 
 
           /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Discord needs your microphone'" "$PLIST" || true
           /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Discord needs your camera'" "$PLIST" || true
 
-          # Find the actual executable inside .app
-          EXECUTABLE="$APP_PATH/Contents/MacOS/$(basename "$APP_PATH" .app)"
-
           # Ad-hoc codesign with entitlements
           codesign --force --deep --options runtime \
-            --entitlements ./src/macos/leto.entitlements \
-            -s - "$EXECUTABLE"
+            --entitlements src/macos/leto.entitlements \
+            -s - "$APP_PATH"
 
       - name: Package (macOS)
         if: ${{ matrix.os == 'macos-latest' }}
