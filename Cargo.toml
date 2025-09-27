@@ -1,6 +1,6 @@
 [package]
 name = "leto"
-version = "0.1.0"
+version = "0.2.2"
 edition = "2024"
 
 [dependencies]
@@ -19,16 +19,12 @@ anyhow = "1.0.99"
 
 [package.metadata.bundle]
 name = "leto" # The display name of your app
-identifier = "com.penguinify.leto" # A unique identifier, reverse-DNS is standard
+identifier = "io.github.penguinify.leto" # A unique identifier, reverse-DNS is standard
 icon = ["icons/icon.icns"] # Path to your app icon(s). .icns for macOS.
 resources = ["scripts"] # IMPORTANT: List of directories/files to copy into the bundle.
 osx_minimum_system_version = "10.13"
 short_description = "discord wrapper written in rust"
-copyright = "Licensed under the GPL-3.0."
-
-[package.metadata.bundle.macos]
-entitlements = "entitlements.plist"
-
+copyright = "Licensed under the GPL-3.0"
 
 [profile.dev]
 debug = true

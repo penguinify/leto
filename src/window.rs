@@ -216,8 +216,6 @@ impl App {
 
         let reload_menu_item = MenuItem::new("Reload", true, None);
 
-        let request_mic_permission_item =
-            MenuItem::new("Request Microphone Permission", true, None);
 
         menu.append(&developer_m).unwrap();
         developer_m
@@ -225,7 +223,6 @@ impl App {
                 &developer_tools_menu_item,
                 &PredefinedMenuItem::separator(),
                 &reload_menu_item,
-                &request_mic_permission_item,
             ])
             .unwrap();
 
@@ -245,7 +242,6 @@ impl App {
         self.menu_items = Some(vec![
             developer_tools_menu_item,
             reload_menu_item,
-            request_mic_permission_item,
         ]);
 
         info!("Menubar items added");

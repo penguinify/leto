@@ -1,3 +1,5 @@
+use crate::injection::inject::Injectable;
+
 pub struct ClientMod {
     pub name: String,
     pub script: String,
@@ -17,10 +19,10 @@ impl ClientMods {
         self.mods.push(client_mod);
     }
 
-    pub fn into_injectables(self) -> Vec<crate::injection::inject::Injectable> {
+    pub fn into_injectables(self) -> Vec<Injectable> {
         self.mods
             .into_iter()
-            .map(|m| crate::injection::inject::Injectable::new(m.script, m.styles))
+            .map(|m| Injectable::new(m.script, m.styles))
             .collect()
     }
 }
