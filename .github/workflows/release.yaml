@@ -12,10 +12,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
+          #- os: ubuntu-latest
+           # target: x86_64-unknown-linux-gnu
+          #- os: windows-latest
+           # target: x86_64-pc-windows-msvc
           - os: macos-latest
             target: x86_64-apple-darwin
 
@@ -63,6 +63,25 @@ jobs:
       - name: Bundle with cargo-bundle
         run: cargo bundle --release --target ${{ matrix.target }}
 
+      - name: Modify Info.plist and Codesign (macOS)
+        if: ${{ matrix.os == 'macos-latest' }}
+        shell: bash
+        run: |
+          APP_PATH="target/${{ matrix.target }}/release/bundle/osx/"*.app
+          PLIST="$APP_PATH/Contents/Info.plist"
+
+
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Discord needs your microphone'" "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Discord needs your camera'" "$PLIST" || true
+
+          # Find the actual executable inside .app
+          EXECUTABLE="$APP_PATH/Contents/MacOS/$(basename "$APP_PATH" .app)"
+
+          # Ad-hoc codesign with entitlements
+          codesign --force --deep --options runtime \
+            --entitlements ./src/macos/leto.entitlements \
+            -s - "$EXECUTABLE"
+
       - name: Package (macOS)
         if: ${{ matrix.os == 'macos-latest' }}
         shell: bash
@@ -71,21 +90,21 @@ jobs:
           cp -r target/${{ matrix.target }}/release/bundle/osx/*.app dist/
           zip -r "${{ matrix.target }}.zip" dist/*.app
 
-      - name: Package (Linux)
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        shell: bash
-        run: |
-          mkdir -p dist
-          cp target/${{ matrix.target }}/release/bundle/linux/* dist/ || true
-          tar -czvf "${{ matrix.target }}.tar.gz" dist
+      #- name: Package (Linux)
+      #  if: ${{ matrix.os == 'ubuntu-latest' }}
+      #  shell: bash
+      #  run: |
+      #    mkdir -p dist
+      #    cp target/${{ matrix.target }}/release/bundle/linux/* dist/ || true
+      #    tar -czvf "${{ matrix.target }}.tar.gz" dist
 
-      - name: Package (Windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Path dist -Force | Out-Null
-          Copy-Item -Path "target/${{ matrix.target }}/release/bundle/windows/*" -Destination dist/ -ErrorAction SilentlyContinue
-          Compress-Archive -Path dist/* -DestinationPath "${{ matrix.target }}.zip"
+      #- name: Package (Windows)
+      #  if: ${{ matrix.os == 'windows-latest' }}
+      #  shell: powershell
+      #  run: |
+      #    New-Item -ItemType Directory -Path dist -Force | Out-Null
+      #    Copy-Item -Path "target/${{ matrix.target }}/release/bundle/windows/*" -Destination dist/ -ErrorAction SilentlyContinue
+      #    Compress-Archive -Path dist/* -DestinationPath "${{ matrix.target }}.zip"
 
       - name: Create Release & Upload
         uses: softprops/action-gh-release@v2
