@@ -6,17 +6,15 @@
 
 use rsrpc::{
     RPCConfig, RPCServer,
-    detection::{DetectableActivity, Executable},
+    detection::{DetectableActivity},
 };
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::sync::{
     Arc, Mutex,
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool},
 };
 use std::{thread, time::Duration};
 use tracing::{error, info};
-use wry::WebView;
 
 static OBS_OPEN: AtomicBool = AtomicBool::new(false);
 

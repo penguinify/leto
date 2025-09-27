@@ -6,11 +6,7 @@ old.forEach(tag => tag.remove());
 const meta = document.createElement("meta");
 meta.httpEquiv = "Content-Security-Policy";
 meta.content = `
-default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;
-img-src * data: blob:;
-media-src *;
-frame-src https://www.youtube.com https://discord.com https://twitter.com;
-connect-src *;
+connect-src * 'self' data: blob:;
 `.replace(/\s+/g, ' ').trim(); // collapse whitespace
-document.head.appendChild(meta);
+document.head.appendChild(meta)
 

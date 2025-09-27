@@ -1,10 +1,10 @@
-use crate::scripts::get_post_inject_script;
+mod injection;
 
 mod ipc;
-mod microphone;
 mod rpc;
-mod scripts;
 mod window;
+
+use injection::scripts;
 
 const TITLE: &str = "Leto";
 const WEB_VIEW_URL: &str = "https://discord.com/app";
@@ -18,38 +18,26 @@ fn main() {
 
     let mut app = window::App::new(TITLE, WEB_VIEW_URL);
 
-    match app.evaluate_script(&get_post_inject_script()) {
+    match app.evaluate_script(&scripts::get_post_inject_script()) {
         Ok(_) => info!("Successfully evaluated post-inject script."),
         Err(e) => error!("Failed to evaluate script: {}", e),
     }
 
-    let client_mods = scripts::ClientMods {
-        shelter: true,
-        equicord: false,
-        vencord: false,
-        better_discord: false,
-    }.get_scripts();
+    let mut client_mods = injection::client_mods::ClientMods::new();
 
-    for script in client_mods {
-        let script_to_inject = if script.starts_with("http") {
-            scripts::load_url_into_string(&script)
-        } else {
-            error!("Failed to load script '{}': Not a valid URL.", script);
-            "".to_string()
-        };
+    client_mods.add_mod(injection::client_mods::ClientMod {
+        name: "Shelter".to_string(),
+        script: "https://raw.githubusercontent.com/uwu/shelter-builds/main/shelter.js".to_string(),
+        styles: None,
+    });
 
-        if !script_to_inject.is_empty() {
-            match app.evaluate_script(&script_to_inject) {
-                Ok(_) => info!("Successfully injected client mod script: {}", script),
-                Err(e) => error!("Failed to inject client mod script '{}': {}", script, e),
-            }
-        } else {
-            error!("Script '{}' is empty or failed to load.", script);
+    let injectables = client_mods.into_injectables();
+    for injectable in injectables {
+        match injection::inject::inject_injectable(&mut app, injectable) {
+            Ok(_) => info!("Successfully injected client mod."),
+            Err(_e) => error!("Failed to inject client mod"),
         }
     }
-
-    
-
 
     app.add_menubar_items();
 

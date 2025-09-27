@@ -11,11 +11,12 @@ use muda::{
     Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu,
     accelerator::{Accelerator, Code, Modifiers},
 };
-use wry::{WebView, WebViewBuilder};
+use wry::{http::HeaderMap, WebView, WebViewBuilder};
 
+use crate::injection::client_mods;
+use crate::injection::inject;
+use crate::injection::scripts::get_pre_inject_script;
 use crate::ipc::IpcMessage;
-use crate::microphone;
-use crate::scripts::get_pre_inject_script;
 
 use tracing::{error, info};
 
@@ -30,7 +31,6 @@ pub struct App {
     submenus: Option<Vec<Submenu>>,
     reload_menu_id: Option<MenuId>,
     devtools_menu_id: Option<MenuId>,
-    request_mid_permission_id: Option<MenuId>,
     _web_view_url: String,
 }
 
@@ -84,9 +84,19 @@ impl App {
         #[cfg(target_os = "macos")]
         let user_agent: String = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15".to_string();
 
+        let mut headers: HeaderMap = HeaderMap::new();
+
+        // allow all content-src
+        headers.insert(
+            "Content-Security-Policy",
+            "default-src *".parse().unwrap(),
+        );
+
+        println!("Headers: {:?}", headers);
+
         #[cfg(target_os = "macos")]
         let web_view = WebViewBuilder::new()
-            .with_url(web_view_url)
+            .with_url_and_headers(web_view_url, headers)
             .with_user_agent(user_agent)
             .with_background_color(tao::window::RGBA::from((40, 43, 48, 255)))
             .with_ipc_handler(move |message| {
@@ -121,10 +131,10 @@ impl App {
             .with_new_window_req_handler(move |url| {
                 info!("New window request for URL: {}", url);
 
-                // makes sure it isn't an embed
-                if url.contains("embed") {
-                    info!("Ignoring embed URL: {}", url);
-                    return false;
+                // basic solution, improve later
+                if url.contains("youtube") || url.contains("captcha") {
+                    // let the embed be created
+                    return true;
                 }
 
                 let _ = open::that(&url);
@@ -141,7 +151,6 @@ impl App {
             window,
             menu_items: None,
             submenus: None,
-            request_mid_permission_id: None,
             reload_menu_id: None,
             devtools_menu_id: None,
             web_view,
@@ -232,7 +241,6 @@ impl App {
 
         self.reload_menu_id = Some(reload_menu_item.id().clone());
         self.devtools_menu_id = Some(developer_tools_menu_item.id().clone());
-        self.request_mid_permission_id = Some(request_mic_permission_item.id().clone());
         self.submenus = Some(vec![about_m, developer_m]);
         self.menu_items = Some(vec![
             developer_tools_menu_item,
@@ -251,7 +259,6 @@ impl App {
             web_view,
             reload_menu_id,
             devtools_menu_id,
-            request_mid_permission_id,
             ..
         } = self;
 
@@ -271,7 +278,6 @@ impl App {
                         &web_view,
                         reload_menu_id.as_ref(),
                         devtools_menu_id.as_ref(),
-                        request_mid_permission_id.as_ref(),
                     );
                 }
                 _ => {}
@@ -285,7 +291,6 @@ impl App {
         web_view: &WebView,
         reload_menu_id: Option<&MenuId>,
         devtools_menu_id: Option<&MenuId>,
-        request_mid_permission_id: Option<&MenuId>,
     ) {
         match user_event {
             UserEvent::DragWindow => {
@@ -314,19 +319,6 @@ impl App {
                     info!("App::run - Developer tools menu selected, opening devtools");
                     web_view.open_devtools();
                     return;
-                }
-                if request_mid_permission_id.map_or(false, |id| menu_event.id() == id) {
-                    info!("App::run - Request microphone permission menu selected");
-                    #[cfg(target_os = "macos")]
-                    {
-                        if let Ok(mut input_audio) = microphone::InputAudio::new() {
-                            if let Err(e) = input_audio.start_stream() {
-                                error!("App::run - Failed to start microphone stream: {}", e);
-                            }
-                        } else {
-                            error!("App::run - Failed to request microphone permission");
-                        }
-                    }
                 }
             }
         }
