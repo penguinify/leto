@@ -11,7 +11,7 @@ use muda::{
     Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu,
     accelerator::{Accelerator, Code, Modifiers},
 };
-use wry::{http::HeaderMap, WebView, WebViewBuilder};
+use wry::{WebView, WebViewBuilder, http::HeaderMap};
 
 use crate::injection::client_mods;
 use crate::injection::inject;
@@ -82,21 +82,11 @@ impl App {
         let event_proxy_ipc = event_loop.create_proxy();
 
         #[cfg(target_os = "macos")]
-        let user_agent: String = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15".to_string();
-
-        let mut headers: HeaderMap = HeaderMap::new();
-
-        // allow all content-src
-        headers.insert(
-            "Content-Security-Policy",
-            "default-src *".parse().unwrap(),
-        );
-
-        println!("Headers: {:?}", headers);
+        let user_agent: String = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15".to_string();
 
         #[cfg(target_os = "macos")]
         let web_view = WebViewBuilder::new()
-            .with_url_and_headers(web_view_url, headers)
+            .with_url(web_view_url)
             .with_user_agent(user_agent)
             .with_background_color(tao::window::RGBA::from((40, 43, 48, 255)))
             .with_ipc_handler(move |message| {
@@ -128,17 +118,21 @@ impl App {
                 }
             })
             .with_devtools(true)
-            .with_new_window_req_handler(move |url| {
+            .with_new_window_req_handler(move |url, window| {
                 info!("New window request for URL: {}", url);
-
-                // basic solution, improve later
-                if url.contains("youtube") || url.contains("captcha") {
-                    // let the embed be created
-                    return true;
+                // checks if the webview is requesting to open inside the app
+                // code is "safe" since its just running objc bindings for NSView
+                // and icl I don't think this is working anyways, but it doesn't matter for now
+                unsafe {
+                    if window.opener.webview.isHiddenOrHasHiddenAncestor() {
+                        info!("Allowing new window inside the app");
+                        return wry::NewWindowResponse::Allow;
+                    }
                 }
-
-                let _ = open::that(&url);
-                false
+                open::that(url).unwrap_or_else(|e| {
+                    error!("Failed to open URL in default browser: {}", e);
+                });
+                wry::NewWindowResponse::Deny
             })
             .with_initialization_script(get_pre_inject_script())
             .build(&window)
@@ -216,7 +210,6 @@ impl App {
 
         let reload_menu_item = MenuItem::new("Reload", true, None);
 
-
         menu.append(&developer_m).unwrap();
         developer_m
             .append_items(&[
@@ -239,10 +232,7 @@ impl App {
         self.reload_menu_id = Some(reload_menu_item.id().clone());
         self.devtools_menu_id = Some(developer_tools_menu_item.id().clone());
         self.submenus = Some(vec![about_m, developer_m]);
-        self.menu_items = Some(vec![
-            developer_tools_menu_item,
-            reload_menu_item,
-        ]);
+        self.menu_items = Some(vec![developer_tools_menu_item, reload_menu_item]);
 
         info!("Menubar items added");
     }

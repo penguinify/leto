@@ -11,7 +11,7 @@ serde_json = "1.0.142"
 tao = "0.34.0"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
-wry = {version = "0.52.1", features = ["devtools"]}
+wry = {version = "0.53.3", features = ["devtools"]}
 rsrpc = { git = "https://www.github.com/SpikeHD/rsRPC", tag = "v0.24.2" }
 reqwest = { version = "0.12.23", features = ["json", "blocking"] }
 cpal = "0.16.0"
