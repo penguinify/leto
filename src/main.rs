@@ -1,7 +1,6 @@
 mod injection;
 
 mod ipc;
-mod rpc;
 mod window;
 
 use injection::scripts;

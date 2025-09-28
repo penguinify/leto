@@ -62,7 +62,7 @@ function showIntroAnimation() {
         const el = document.createElement("p");
         el.innerText = char;
         el.style.cssText = `
-            animation: introanim 1.5s ease-in-out forwards;
+            animation: introanim 1.8s ease-in-out forwards;
             opacity: 0;
             ${delay ? `animation-delay: ${delay}s;` : ""}
         `;
@@ -99,20 +99,6 @@ function showIntroAnimation() {
         {
             duration: 1000,
             delay: 1000,
-            fill: "forwards",
-            easing: "ease-in-out"
-        }
-    );
-
-    // Animate text scaling
-    text.animate(
-        [
-            { transform: "scale(1)" },
-            { transform: "scale(1.3)", opacity: 0.5 }
-        ],
-        {
-            duration: 800,
-            delay: 1200,
             fill: "forwards",
             easing: "ease-in-out"
         }

@@ -17,11 +17,11 @@ logMessage(`Zoom level initialized to ${zoomLevel}`);
 
 
 document.body.addEventListener("keydown", (event) => {
-    if (event.ctrlKey && event.key === "+") {
+    if (event.metaKey && event.key === "+") {
         zoomLevel = Math.min(3.0, zoomLevel + 0.1); // Prevent zooming in too far
-    } else if (event.ctrlKey && event.key === "-") {
+    } else if (event.metaKey && event.key === "-") {
         zoomLevel = Math.max(0.1, zoomLevel - 0.1); // Prevent zooming out too far
-    } else if (event.ctrlKey && event.key === "0") {
+    } else if (event.metaKey && event.key === "=") {
         zoomLevel = 1.0; // Reset to default zoom level
     } else {
         return; // Exit if not a zoom key combination

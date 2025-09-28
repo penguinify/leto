@@ -1,16 +1,21 @@
+use http::{HeaderName, HeaderValue, StatusCode};
 use tao::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
     platform::macos::WindowBuilderExtMacOS,
     window::{Window, WindowBuilder},
 };
+use std::borrow::Cow;
 
+use reqwest::blocking;
 // use rsrpc::detection::DetectableActivity;
 #[cfg(target_os = "macos")]
 use muda::{
     Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu,
     accelerator::{Accelerator, Code, Modifiers},
 };
+#[cfg(target_os = "macos")]
+use tokio::runtime::Builder;
 use wry::{WebView, WebViewBuilder, http::HeaderMap};
 
 use crate::injection::client_mods;
@@ -18,8 +23,11 @@ use crate::injection::inject;
 use crate::injection::scripts::get_pre_inject_script;
 use crate::ipc::IpcMessage;
 
-use tracing::{error, info};
+use wry::http::{Request, Response};
 
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tracing::{error, info};
 pub struct App {
     _title: String,
     event_loop: EventLoop<UserEvent>,
@@ -170,6 +178,7 @@ impl App {
                 &PredefinedMenuItem::hide_others(None),
                 &PredefinedMenuItem::show_all(None),
                 &PredefinedMenuItem::separator(),
+                &PredefinedMenuItem::close_window(None),
                 &PredefinedMenuItem::quit(None),
             ])
             .unwrap();
