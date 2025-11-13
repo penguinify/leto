@@ -18,7 +18,7 @@ rust wrapper for discord
 - [X] VC Support
 - [X] Link support
 - [X] Multiple input and output devices (only input atm)
-- [ ] Support for vencord, betterdiscord, equicord, and replugged.
+- [ ] Support for vencord, betterdiscord, equicord, and later asar based releases like betterdiscord and replugged
 - [X] Support for custom js
 
 ## how performance is improved
@@ -32,6 +32,9 @@ leto uses a mix of js scripts and shelter plugins, just like Dorion
 ## leto vs dorion    
 - dorion uses tauri, while leto uses tao, wry, global-hotkeys, and muda which are the underlying libraries used by tauri.
 - dorion is focused on compatibility and performance, while leto is focused on being a drop-in replacement for discord without auto-updates and without electron.
+
+## is this more performant than dorion
+- you should see no difference
 
 ## contributing
 - to launch use `cargo run`. This runs webpack aswell, im sure that windows and linux aren't working since I haven't added their custom implemnentations yet. If you have a windows or linux machine please open a PR and add platform specific code.
