@@ -20,6 +20,7 @@ rust wrapper for discord
 - [X] Multiple input and output devices (only input atm)
 - [ ] Support for vencord, betterdiscord, equicord, and later asar based releases like betterdiscord and replugged
 - [X] Support for custom js
+- [ ] Reimplement WebSocket in rust to allow access of "insecure content" https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
 
 ## how performance is improved
 - rust backend creates lower overhead compared to electron
