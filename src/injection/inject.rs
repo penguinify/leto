@@ -76,7 +76,7 @@ pub fn inject_injectable(app: &mut App, injectable: Injectable) -> Result<(), In
 
             app.evaluate_script(&final_script).map_err(|e| {
                 tracing::error!("Failed to inject script: {}", e);
-                InjectionError::ScriptInjectionError(format!("Failed to inject script: {}", e))
+                InjectionError::ScriptInjectionError
             })?;
 
             tracing::info!("Successfully injected script and styles.");

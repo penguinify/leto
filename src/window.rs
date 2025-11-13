@@ -1,32 +1,28 @@
-use http::{HeaderName, HeaderValue, StatusCode};
+use std::error::Error;
+
+use http::HeaderMap;
 use tao::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
     platform::macos::WindowBuilderExtMacOS,
     window::{Window, WindowBuilder},
 };
-use std::borrow::Cow;
+use tracing::event;
+use tracing::{Instrument, instrument};
 
-use reqwest::blocking;
 // use rsrpc::detection::DetectableActivity;
 #[cfg(target_os = "macos")]
 use muda::{
     Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu,
     accelerator::{Accelerator, Code, Modifiers},
 };
-#[cfg(target_os = "macos")]
-use tokio::runtime::Builder;
-use wry::{WebView, WebViewBuilder, http::HeaderMap};
+use wry::{WebView, WebViewBuilder};
 
-use crate::injection::client_mods;
-use crate::injection::inject;
 use crate::injection::scripts::get_pre_inject_script;
+use crate::ipc::FetchOptions;
 use crate::ipc::IpcMessage;
-
-use wry::http::{Request, Response};
-
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use serde_json::json;
+use tokio::runtime::Runtime;
 use tracing::{error, info};
 pub struct App {
     _title: String,
@@ -40,6 +36,7 @@ pub struct App {
     reload_menu_id: Option<MenuId>,
     devtools_menu_id: Option<MenuId>,
     _web_view_url: String,
+    runtime: tokio::runtime::Runtime,
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +44,10 @@ enum UserEvent {
     DragWindow,
     Zoom(f64),
     MenuEvent(muda::MenuEvent),
+    IpcFetchResult {
+        req_id: String,
+        result: Result<serde_json::Value, serde_json::Value>,
+    },
 }
 
 impl App {
@@ -89,11 +90,20 @@ impl App {
 
         let event_proxy_ipc = event_loop.create_proxy();
 
+        let runtime = Runtime::new().unwrap();
+        let rt_handle = runtime.handle().clone();
+
         #[cfg(target_os = "macos")]
-        let user_agent: String = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15".to_string();
+            let user_agent: String = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15".to_string();
+        let headers: HeaderMap = {
+            let mut headers = HeaderMap::new();
+            headers.insert("content-security-policy", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline' data: blob:; font-src * data: blob:; connect-src * wss: ws:; frame-src * data: blob:;".parse().unwrap());
+            headers
+        };
 
         #[cfg(target_os = "macos")]
         let web_view = WebViewBuilder::new()
+            .with_headers(headers)
             .with_url(web_view_url)
             .with_user_agent(user_agent)
             .with_background_color(tao::window::RGBA::from((40, 43, 48, 255)))
@@ -122,6 +132,21 @@ impl App {
                         } else {
                             info!("Zoom event sent with level {}", level);
                         }
+                    }
+                    IpcMessage::Fetch {
+                        url,
+                        options,
+                        req_id,
+                    } => {
+                        let rt_handle = rt_handle.clone();
+                        let event_proxy = event_proxy_ipc.clone();
+                        let url = url.clone();
+                        let options: FetchOptions = options.clone();
+                        let req_id = req_id.clone();
+
+                        rt_handle.spawn(async move {
+                            fetch_handler(url, options, req_id, event_proxy).await;
+                        });
                     }
                 }
             })
@@ -157,6 +182,7 @@ impl App {
             devtools_menu_id: None,
             web_view,
             _web_view_url: web_view_url.to_string(),
+            runtime,
         }
     }
 
@@ -316,6 +342,105 @@ impl App {
                     return;
                 }
             }
+            UserEvent::IpcFetchResult { req_id, result } => {
+                info!("App::run - Handling IpcFetchResult for req_id: {}", req_id);
+                let script = match result {
+                    Ok(data) => format!(
+                        "window.__LETO__.handleFetchResponse('{}', true, {});",
+                        req_id,
+                        serde_json::to_string(&data).unwrap()
+                    ),
+                    Err(data) => format!(
+                        "window.__LETO__.handleFetchResponse('{}', false, {});",
+                        req_id,
+                        serde_json::to_string(&data).unwrap()
+                    ),
+                };
+                let log_script = format!(
+                    "window.__LETO__.logMessage('Fetch response for {} being returned.');",
+                    req_id
+                );
+                let _ = web_view.evaluate_script(&log_script);
+                let _ = web_view.evaluate_script(&script);
+            }
         }
     }
+}
+
+#[instrument]
+async fn fetch_handler(
+    url: String,
+    options: FetchOptions,
+    req_id: String,
+    event_proxy: tao::event_loop::EventLoopProxy<UserEvent>,
+) {
+    // --- Inside the fetch_task span ---
+
+    // Log the start of the task
+    tracing::info!("Starting HTTP request"); // <-- **Start Log**
+
+    let client = reqwest::Client::new();
+
+    // Determine request method and log it
+    let method = options.method.to_uppercase();
+    tracing::debug!("Request method determined: {}", method); // <-- **Method Log**
+
+    let mut req_builder = match method.as_str() {
+        "POST" => client.post(&url),
+        "PUT" => client.put(&url),
+        "DELETE" => client.delete(&url),
+        _ => client.get(&url),
+    };
+
+    // ... Header and body setup code remains the same ...
+    if let Some(headers) = options.headers
+        && let Some(headers_map) = headers.as_object()
+    {
+        // NOTE: Consider logging the number of headers added, not the headers themselves,
+        // as they might contain sensitive info.
+        tracing::trace!("Adding {} headers to request", headers_map.len());
+        for (k, v) in headers_map {
+            if let Some(v_str) = v.as_str() {
+                req_builder = req_builder.header(k, v_str);
+            }
+        }
+    }
+
+    if options.body.is_some() {
+        tracing::trace!("Adding body to request");
+        req_builder = req_builder.body(options.body.unwrap());
+    }
+
+    // Log the actual send attempt
+    tracing::info!("Sending request..."); // <-- **Pre-send Log**
+    let response = req_builder.send().await;
+
+    let result = match response {
+        Ok(resp) => {
+            let status = resp.status().as_u16();
+            // Log the successful response status
+            tracing::info!("Request completed with status: {}", status); // <-- **Success Log**
+
+            let headers = resp
+                .headers()
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+                .collect::<serde_json::Value>();
+
+            // Read the body
+            let body_result = resp.text().await;
+            let body = body_result.unwrap_or_default();
+
+            Ok(json!({ "status": status, "headers": headers, "body": body }))
+        }
+        Err(e) => {
+            // Log the request error (e.g., connection failure, timeout)
+            tracing::error!("Request failed with error: {:?}", e.source());
+            Err(json!({ "error": e.to_string() }))
+        }
+    };
+
+    // Log that the IPC result is being sent
+    tracing::debug!("Sending result via IPC proxy."); // <-- **End Log**
+    let _ = event_proxy.send_event(UserEvent::IpcFetchResult { req_id, result });
 }

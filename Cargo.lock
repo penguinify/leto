@@ -3064,7 +3064,19 @@ dependencies = [
  "pin-project-lite",
  "slab",
  "socket2",
+ "tokio-macros",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e06d43f1345a3bcd39f6a56dbb7dcab2ba47e68e8ac134855e7e2bdbaf8cab8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
 ]
 
 [[package]]
@@ -3971,8 +3983,7 @@ checksum = "ea2f10b9bb0928dfb1b42b65e1f9e36f7f54dbdf08457afefb38afcdec4fa2bb"
 [[package]]
 name = "wry"
 version = "0.53.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31f0e9642a0d061f6236c54ccae64c2722a7879ad4ec7dff59bd376d446d8e90"
+source = "git+https://www.github.com/penguinify/wry?tag=v0.53.3#181ab45353e57a22c6677f7e3728f29cc4d7a1df"
 dependencies = [
  "base64",
  "block2",

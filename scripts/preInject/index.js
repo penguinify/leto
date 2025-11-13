@@ -1,2 +1,4 @@
+
+import "./init";
 import "./sentry";
-import "./letoProxy";
+// import "./proxy"

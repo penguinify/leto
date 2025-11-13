@@ -1,5 +1,7 @@
 // Intro animation for page load
 
+import { logMessage } from "../shared/logger";
+
 
 /**
  * Creates and runs the intro animation overlay.
@@ -111,3 +113,4 @@ function showIntroAnimation() {
 }
 
 showIntroAnimation();
+logMessage("Intro animation displayed.");

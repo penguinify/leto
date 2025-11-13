@@ -10,3 +10,6 @@ function logError(error) {
 }
 
 export { logMessage, logError };
+
+window.__LETO__.logMessage = logMessage;
+window.__LETO__.logError = logError;

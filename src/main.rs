@@ -11,7 +11,15 @@ const WEB_VIEW_URL: &str = "https://discord.com/app";
 use tracing::{error, info};
 
 fn main() {
-    tracing_subscriber::fmt::init();
+    #[cfg(debug_assertions)]
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::TRACE)
+        .init();
+
+    #[cfg(not(debug_assertions))]
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
 
     info!("Starting application: {}", TITLE);
 
@@ -25,7 +33,6 @@ fn main() {
     let mut client_mods = injection::client_mods::ClientMods::new();
 
     client_mods.add_mod(injection::client_mods::ClientMod {
-        name: "Shelter".to_string(),
         script: "https://raw.githubusercontent.com/uwu/shelter-builds/main/shelter.js".to_string(),
         styles: None,
     });
@@ -34,7 +41,7 @@ fn main() {
     for injectable in injectables {
         match injection::inject::inject_injectable(&mut app, injectable) {
             Ok(_) => info!("Successfully injected client mod."),
-            Err(_e) => error!("Failed to inject client mod"),
+            Err(_e) => error!("Failed to inject client mod: {}", _e),
         }
     }
 

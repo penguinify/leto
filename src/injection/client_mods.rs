@@ -1,7 +1,6 @@
 use crate::injection::inject::Injectable;
 
 pub struct ClientMod {
-    pub name: String,
     pub script: String,
     pub styles: Option<String>,
 }

@@ -6,4 +6,17 @@ pub enum IpcMessage {
     DragWindow,
     #[serde(rename = "zoom")]
     Zoom { level: f64 },
+    #[serde(rename = "fetch")]
+    Fetch {
+        url: String,
+        options: FetchOptions,
+        req_id: String,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FetchOptions {
+    pub method: String,
+    pub headers: Option<serde_json::Value>,
+    pub body: Option<String>,
 }

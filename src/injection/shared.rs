@@ -1,6 +1,5 @@
 use std::env;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::{fs, path::PathBuf};
 
 pub fn load_url_into_string(url: &str) -> Result<String, InjectionError> {
     tracing::info!("Loading script from URL: {}", url);
@@ -12,18 +11,12 @@ pub fn load_url_into_string(url: &str) -> Result<String, InjectionError> {
             }
             Err(e) => {
                 tracing::error!("Failed to read script from URL '{}': {}", url, e);
-                Err(InjectionError::ScriptLoadError(format!(
-                    "Failed to read script from URL '{}': {}",
-                    url, e
-                )))
+                Err(InjectionError::ScriptLoadError)
             }
         },
         Err(e) => {
             tracing::error!("Failed to fetch script from URL '{}': {}", url, e);
-            Err(InjectionError::ScriptLoadError(format!(
-                "Failed to fetch script from URL '{}': {}",
-                url, e
-            )))
+            Err(InjectionError::ScriptLoadError)
         }
     }
 }
@@ -39,11 +32,7 @@ pub fn load_script_into_string(script_name: &str) -> Result<String, InjectionErr
             }
             Err(e) => {
                 tracing::error!("Failed to load script '{}': {}", script_path.display(), e);
-                Err(InjectionError::ScriptLoadError(format!(
-                    "Failed to load script '{}': {}",
-                    script_path.display(),
-                    e
-                )))
+                Err(InjectionError::ScriptLoadError)
             }
         }
     } else {
@@ -51,10 +40,7 @@ pub fn load_script_into_string(script_name: &str) -> Result<String, InjectionErr
             "Failed to determine executable directory; can't load script '{}'",
             script_name
         );
-        Err(InjectionError::ScriptLoadError(format!(
-            "Failed to determine executable directory for '{}'",
-            script_name
-        )))
+        Err(InjectionError::ScriptLoadError)
     }
 }
 
@@ -78,9 +64,16 @@ fn get_script_path(script_name: &str) -> Option<PathBuf> {
 
 #[derive(Debug)]
 pub enum InjectionError {
-    ScriptLoadError(String),
-    ScriptEvalError(String),
-    ScriptInjectionError(String),
-    UrlParseError(String),
-    IoError(String),
+    ScriptLoadError,
+    ScriptInjectionError,
+}
+
+impl std::fmt::Display for InjectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let msg = match self {
+            InjectionError::ScriptLoadError => "Failed to load script.".to_string(),
+            InjectionError::ScriptInjectionError => "Failed to inject script.".to_string(),
+        };
+        write!(f, "{}", msg)
+    }
 }
